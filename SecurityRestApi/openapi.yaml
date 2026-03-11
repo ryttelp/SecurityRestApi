@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: User Storage REST API
+  description: API wymagane przez RestUserStorageProvider do pobierania użytkowników i walidacji haseł.
+  version: 1.0.0
+
+paths:
+  /users/lookup:
+    get:
+      summary: Wyszukiwanie użytkownika
+      description: Pobiera dane użytkownika na podstawie identyfikatora, nazwy użytkownika lub adresu e-mail.
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+          description: Unikalny identyfikator użytkownika.
+        - name: username
+          in: query
+          schema:
+            type: string
+          description: Nazwa użytkownika.
+        - name: email
+          in: query
+          schema:
+            type: string
+          description: Adres e-mail użytkownika.
+      responses:
+        '200':
+          description: Znaleziono użytkownika.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Użytkownik nie został znaleziony.
+
+  /auth/validate:
+    post:
+      summary: Walidacja poświadczeń (hasła)
+      description: Sprawdza, czy podane hasło jest poprawne dla danego użytkownika.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Autoryzacja udana.
+        '204':
+          description: Autoryzacja udana (brak treści).
+        '401':
+          description: Błędne hasło lub nieautoryzowany dostęp.
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Opcjonalny nagłówek autoryzacji konfigurowany w fabryce dostawcy.
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Mapowane na ID w Keycloak. Może być również zwrócone jako 'userId'.
+        username:
+          type: string
+          description: Nazwa użytkownika w Keycloak.
+        email:
+          type: string
+          nullable: true
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+      required:
+        - username
