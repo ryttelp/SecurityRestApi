@@ -1,62 +1,64 @@
 # =============================================================================
-# Wzorcowy multi-stage Dockerfile dla ASP.NET Core Web API (.NET 8/9)
+# Dockerfile dla SecurityRestApi — ASP.NET Core Web API (.NET 10)
+#
+# Lokalizacja w repo:  SecurityRestApi/Dockerfile
+# Kaniko context:      SecurityRestApi/          (context-sub-path=SecurityRestApi/)
+# Kaniko dockerfile:   SecurityRestApi/Dockerfile
+#
+# Struktura plików widziana przez Kaniko (root contextu = SecurityRestApi/):
+#   ./SecurityRestApi.csproj   ← tu, nie SecurityRestApi/SecurityRestApi.csproj
+#   ./Program.cs
+#   ./Controllers/
+#   ./Dockerfile
+#   (itd.)
 # =============================================================================
-#
-# NAJCZĘSTSZY POWÓD BŁĘDU "does not contain a project or solution file":
-#
-#   RUN dotnet restore           ← MSBuild szuka .csproj w WORKDIR
-#   RUN dotnet restore .         ← j.w.
-#   RUN dotnet restore *.csproj  ← OK tylko gdy .csproj jest bezpośrednio w WORKDIR
-#
-# ROZWIĄZANIE: zawsze podawaj jawną ścieżkę do pliku projektu.
-#
-# =============================================================================
-# Dostosuj zmienne:
-ARG PROJECT_NAME=SecurityRestApi
+
 ARG DOTNET_VERSION=10.0
 
-# ── Stage 1: Restore + Build ──────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+# ── Stage 1: Restore ─────────────────────────────────────────────────────────
+# Uwaga: NIE używaj --platform w FROM przy Kaniko — platforma jest sterowana
+# flagą --customPlatform na poziomie Kaniko executora, nie w Dockerfile.
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+ARG DOTNET_VERSION
+
 WORKDIR /src
 
-# Kopiuj TYLKO plik projektu najpierw → Docker/Kaniko cachuje warstwę restore
-# Dopóki .csproj się nie zmieni, `dotnet restore` nie będzie ponownie pobierał pakietów
-COPY ${PROJECT_NAME}/${PROJECT_NAME}.csproj ./${PROJECT_NAME}/
+# COPY z jawną nazwą pliku — żadnych zmiennych ARG w ścieżkach COPY.
+# Context = SecurityRestApi/, więc .csproj leży bezpośrednio w rocie contextu.
+COPY SecurityRestApi.csproj ./
 
-# Restore z jawną ścieżką — nigdy nie będzie problemu z "brak .csproj w CWD"
-RUN dotnet restore ./${PROJECT_NAME}/${PROJECT_NAME}.csproj
+RUN dotnet restore SecurityRestApi.csproj
 
-# Kopiuj resztę kodu (po restore → cache restore layer jest zachowany)
-COPY ${PROJECT_NAME}/ ./${PROJECT_NAME}/
+# ── Stage 2: Build ───────────────────────────────────────────────────────────
+FROM restore AS build
 
-# Build w trybie Release
-RUN dotnet build ./${PROJECT_NAME}/${PROJECT_NAME}.csproj \
+# Kopiuj resztę źródeł (warstwa restore jest już zcache'owana)
+COPY . .
+
+RUN dotnet build SecurityRestApi.csproj \
     --configuration Release \
     --no-restore \
     --output /app/build
 
-# ── Stage 2: Publish ──────────────────────────────────────────────────────
+# ── Stage 3: Publish ─────────────────────────────────────────────────────────
 FROM build AS publish
-RUN dotnet publish ./${PROJECT_NAME}/${PROJECT_NAME}.csproj \
+
+RUN dotnet publish SecurityRestApi.csproj \
     --configuration Release \
     --no-restore \
     --output /app/publish \
     /p:UseAppHost=false
 
-# ── Stage 3: Runtime (finalny obraz — jak najmniejszy) ───────────────────
+# ── Stage 4: Runtime (finalny obraz) ─────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
 
-# Nie uruchamiaj jako root
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 WORKDIR /app
 
 COPY --from=publish /app/publish .
-
-# Zmień właściciela plików na non-root user
 RUN chown -R appuser:appgroup /app
 USER appuser
 
-# Port ASP.NET Core (Kestrel)
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
