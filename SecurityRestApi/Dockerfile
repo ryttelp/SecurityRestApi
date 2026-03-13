@@ -52,12 +52,13 @@ RUN dotnet publish SecurityRestApi.csproj \
 # ── Stage 4: Runtime (finalny obraz) ─────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
 
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+# Od .NET 8 obraz bazowy zawiera już wbudowanego użytkownika "app" (UID 1654).
+# NIE używaj addgroup/adduser — to komendy Alpine/Busybox, niedostępne na Ubuntu Chiseled.
 WORKDIR /app
 
 COPY --from=publish /app/publish .
-RUN chown -R appuser:appgroup /app
-USER appuser
+
+USER app
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
