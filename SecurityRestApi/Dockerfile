@@ -17,6 +17,7 @@ ARG DOTNET_VERSION=10.0
 
 # ── Stage 1: Restore + Build ──────────────────────────────────────────────
 FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+ARG PROJECT_NAME=SecurityRestApi
 WORKDIR /src
 
 # Kopiuj TYLKO plik projektu najpierw → Docker/Kaniko cachuje warstwę restore
@@ -37,6 +38,7 @@ RUN dotnet build ./${PROJECT_NAME}/${PROJECT_NAME}.csproj \
 
 # ── Stage 2: Publish ──────────────────────────────────────────────────────
 FROM build AS publish
+ARG PROJECT_NAME=SecurityRestApi
 RUN dotnet publish ./${PROJECT_NAME}/${PROJECT_NAME}.csproj \
     --configuration Release \
     --no-restore \
