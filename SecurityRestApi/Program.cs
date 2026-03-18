@@ -1,4 +1,13 @@
-var app = WebApplication.Create(args);
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpLogging(o =>
+{
+    o.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+    o.CombineLogs = true;
+});
+
+var app = builder.Build();
+
+app.UseHttpLogging();
 
 // --- Test data ---
 var users = new List<User>
