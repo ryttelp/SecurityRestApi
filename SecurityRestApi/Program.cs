@@ -1,7 +1,5 @@
 var app = WebApplication.Create(args);
 
-app.UseHttpsRedirection();
-
 // --- Test data ---
 var users = new List<User>
 {
