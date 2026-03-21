@@ -15,24 +15,20 @@
 
 ARG DOTNET_VERSION=10.0
 
-# ── Stage 1: Restore ─────────────────────────────────────────────────────────
-# Uwaga: NIE używaj --platform w FROM przy Kaniko — platforma jest sterowana
-# flagą --customPlatform na poziomie Kaniko executora, nie w Dockerfile.
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+# ── Stage 1: Build ───────────────────────────────────────────────────────────
+# Restore i build w JEDNYM stage — Kaniko nie przenosi NuGet cache między
+# oddzielnymi stage'ami (problem z cross-stage /root/.nuget/packages/).
+# Osobna warstwa COPY *.csproj + RUN dotnet restore nadal daje cache:
+#   → zmiana kodu źródłowego nie unieważnia warstwy z paczkami NuGet
+#   → tylko zmiana .csproj wymusza ponowny restore
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
 ARG DOTNET_VERSION
 
 WORKDIR /src
 
-# COPY z jawną nazwą pliku — żadnych zmiennych ARG w ścieżkach COPY.
-# Context = SecurityRestApi/, więc .csproj leży bezpośrednio w rocie contextu.
 COPY SecurityRestApi.csproj ./
-
 RUN dotnet restore SecurityRestApi.csproj
 
-# ── Stage 2: Build ───────────────────────────────────────────────────────────
-FROM restore AS build
-
-# Kopiuj resztę źródeł (warstwa restore jest już zcache'owana)
 COPY . .
 
 RUN dotnet build SecurityRestApi.csproj \
@@ -40,7 +36,7 @@ RUN dotnet build SecurityRestApi.csproj \
     --no-restore \
     --output /app/build
 
-# ── Stage 3: Publish ─────────────────────────────────────────────────────────
+# ── Stage 2: Publish ─────────────────────────────────────────────────────────
 FROM build AS publish
 
 RUN dotnet publish SecurityRestApi.csproj \
