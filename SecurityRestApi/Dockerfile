@@ -26,6 +26,10 @@ ARG DOTNET_VERSION
 
 WORKDIR /src
 
+# Kaniko nie przechwytuje /root/.nuget/packages między warstwami RUN.
+# NUGET_PACKAGES wskazuje na ścieżkę wewnątrz WORKDIR — Kaniko ją snapshottuje poprawnie.
+ENV NUGET_PACKAGES=/src/.nuget/packages
+
 COPY SecurityRestApi.csproj ./
 RUN dotnet restore SecurityRestApi.csproj
 
