@@ -1,33 +1,31 @@
+using SecurityRestApi;
+using SecurityRestApi.IdentityServer;
+
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddHttpLogging(o =>
 {
     o.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
     o.CombineLogs = true;
 });
 
+builder.Services.AddIdentityServer()
+    .AddDeveloperSigningCredential()                          // tylko development; w produkcji zastąp certyfikatem
+    .AddInMemoryIdentityResources(Config.IdentityResources)
+    .AddInMemoryApiScopes(Config.ApiScopes)
+    .AddInMemoryClients(Config.Clients)
+    .AddResourceOwnerValidator<CustomResourceOwnerPasswordValidator>()
+    .AddProfileService<CustomProfileService>();
+
 var app = builder.Build();
 
 app.UseHttpLogging();
-
-// --- Test data ---
-var users = new List<User>
-{
-    new("1", "jkowalski", "jan.kowalski@example.com", "Jan", "Kowalski"),
-    new("2", "anowak",   "anna.nowak@example.com",   "Anna", "Nowak"),
-    new("3", "admin",    "admin@example.com",         "Admin", null),
-};
-
-var credentials = new Dictionary<string, string>(StringComparer.Ordinal)
-{
-    ["jkowalski"] = "haslo123",
-    ["anowak"]    = "tajnehaslo",
-    ["admin"]     = "admin",
-};
+app.UseIdentityServer();
 
 // GET /users/lookup?id=&username=&email=
 app.MapGet("/users/lookup", (string? id, string? username, string? email) =>
 {
-    var user = users.FirstOrDefault(u =>
+    var user = UserStore.Users.FirstOrDefault(u =>
         (id       != null && u.Id       == id)       ||
         (username != null && u.Username == username) ||
         (email    != null && u.Email    == email));
@@ -46,14 +44,9 @@ app.MapPost("/auth/validate", async (HttpRequest request) =>
     if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         return Results.Unauthorized();
 
-    if (credentials.TryGetValue(username, out var expected) && expected == password)
-        return Results.Ok();
-
-    return Results.Unauthorized();
+    return UserStore.ValidateCredentials(username, password) ? Results.Ok() : Results.Unauthorized();
 })
 .WithName("ValidateCredentials")
 .Accepts<IFormCollection>("application/x-www-form-urlencoded");
 
 app.Run();
-
-record User(string Id, string Username, string? Email, string? FirstName, string? LastName);

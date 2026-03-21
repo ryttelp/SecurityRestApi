@@ -1,8 +1,20 @@
 {
   "version": 2,
-  "dgSpecHash": "BOYkVk6+KFk=",
+  "dgSpecHash": "DULNunb5688=",
   "success": true,
   "projectFilePath": "/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/SecurityRestApi.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/Users/pawel/.nuget/packages/duende.identitymodel/8.0.1/duende.identitymodel.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/duende.identityserver/7.4.7/duende.identityserver.7.4.7.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/duende.identityserver.storage/7.4.7/duende.identityserver.storage.7.4.7.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.aspnetcore.authentication.openidconnect/10.0.4/microsoft.aspnetcore.authentication.openidconnect.10.0.4.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.identitymodel.abstractions/8.0.1/microsoft.identitymodel.abstractions.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.identitymodel.jsonwebtokens/8.0.1/microsoft.identitymodel.jsonwebtokens.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.identitymodel.logging/8.0.1/microsoft.identitymodel.logging.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.identitymodel.protocols/8.0.1/microsoft.identitymodel.protocols.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.identitymodel.protocols.openidconnect/8.0.1/microsoft.identitymodel.protocols.openidconnect.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/microsoft.identitymodel.tokens/8.0.1/microsoft.identitymodel.tokens.8.0.1.nupkg.sha512",
+    "/Users/pawel/.nuget/packages/system.identitymodel.tokens.jwt/8.0.1/system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512"
+  ],
   "logs": []
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SecurityRestApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4ef7f1ec5160275c05f6fc2aa819551df0035b7a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+119d544c8d71fbb593bf13b1a086e7a4b098c647")]
 [assembly: System.Reflection.AssemblyProductAttribute("SecurityRestApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SecurityRestApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
