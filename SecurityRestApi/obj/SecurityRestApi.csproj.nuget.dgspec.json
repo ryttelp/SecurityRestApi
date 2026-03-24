@@ -14,6 +14,7 @@
         "outputPath": "/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
+          "/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/NuGet.Config",
           "/Users/pawel/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [

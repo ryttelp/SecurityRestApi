@@ -21,6 +21,14 @@ public static class UserStore
     public static bool ValidateCredentials(string username, string password) =>
         Credentials.TryGetValue(username, out var expected) && expected == password;
 
+    /// <returns>false jeśli użytkownik nie istnieje</returns>
+    public static bool UpdatePassword(string username, string newPassword)
+    {
+        if (!Credentials.ContainsKey(username)) return false;
+        Credentials[username] = newPassword;
+        return true;
+    }
+
     public static User? FindById(string id)           => Users.FirstOrDefault(u => u.Id       == id);
     public static User? FindByUsername(string name)   => Users.FirstOrDefault(u => u.Username == name);
     public static User? FindByEmail(string email)     => Users.FirstOrDefault(u => u.Email    == email);

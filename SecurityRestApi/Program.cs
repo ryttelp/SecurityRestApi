@@ -49,4 +49,23 @@ app.MapPost("/auth/validate", async (HttpRequest request) =>
 .WithName("ValidateCredentials")
 .Accepts<IFormCollection>("application/x-www-form-urlencoded");
 
+// POST /auth/update-password  (application/x-www-form-urlencoded)
+app.MapPost("/auth/update-password", async (HttpRequest request) =>
+{
+    var form = await request.ReadFormAsync();
+    var username = form["username"].FirstOrDefault();
+    var password = form["password"].FirstOrDefault();
+
+    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        return Results.BadRequest("Pole 'username' i 'password' są wymagane.");
+
+    if (UserStore.FindByUsername(username) is null)
+        return Results.NotFound();
+
+    UserStore.UpdatePassword(username, password);
+    return Results.NoContent();
+})
+.WithName("UpdatePassword")
+.Accepts<IFormCollection>("application/x-www-form-urlencoded");
+
 app.Run();
