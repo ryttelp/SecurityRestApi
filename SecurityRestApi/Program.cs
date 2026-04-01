@@ -1,5 +1,6 @@
 using SecurityRestApi;
 using SecurityRestApi.IdentityServer;
+using SecurityRestApi.Keycloak;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,12 @@ builder.Services.AddHttpLogging(o =>
 {
     o.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
     o.CombineLogs = true;
+});
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(o =>
+{
+    o.SwaggerDoc("v1", new() { Title = "SecurityRestApi", Version = "v1" });
 });
 
 builder.Services.AddIdentityServer()
@@ -21,6 +28,9 @@ var app = builder.Build();
 
 app.UseHttpLogging();
 app.UseIdentityServer();
+
+app.UseSwagger();
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "SecurityRestApi v1"));
 
 // GET /users/lookup?id=&username=&email=
 app.MapGet("/users/lookup", (string? id, string? username, string? email) =>
@@ -67,5 +77,33 @@ app.MapPost("/auth/update-password", async (HttpRequest request) =>
 })
 .WithName("UpdatePassword")
 .Accepts<IFormCollection>("application/x-www-form-urlencoded");
+
+// ── Keycloak User Storage Federation endpoints ────────────────────────────────
+
+// GET /users?search=&username=&email=&firstName=&lastName=&first=0&max=20
+// Obsługuje oba tryby Keycloak UserQueryProvider:
+//   - search (pełnotekstowy) — gdy podano parametr `search`
+//   - atrybutowy (username/email/firstName/lastName) — gdy search jest puste
+app.MapGet("/users", (
+    string? search,
+    string? username,
+    string? email,
+    string? firstName,
+    string? lastName,
+    int first = 0,
+    int max = 20) =>
+{
+    var users = string.IsNullOrWhiteSpace(search)
+        ? UserQueryProvider.SearchForUsers(username, email, firstName, lastName, first, max)
+        : UserQueryProvider.SearchForUsers(search, first, max);
+
+    return Results.Ok(users);
+})
+.WithName("KeycloakQueryUsers");
+
+// GET /users/count?search=
+app.MapGet("/users/count", (string? search) =>
+    Results.Ok(UserQueryProvider.GetUsersCount(search)))
+.WithName("KeycloakUsersCount");
 
 app.Run();

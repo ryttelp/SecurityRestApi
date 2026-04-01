@@ -14,7 +14,6 @@
         "outputPath": "/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/NuGet.Config",
           "/Users/pawel/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
@@ -49,6 +48,10 @@
             "Duende.IdentityServer": {
               "target": "Package",
               "version": "[*, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[10.1.7, )"
             }
           },
           "imports": [
