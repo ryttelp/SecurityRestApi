@@ -41,3 +41,8 @@
 /Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/bin/Debug/net10.0/Microsoft.IdentityModel.Tokens.dll
 /Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
 /Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/obj/Debug/net10.0/SecurityRestApi.sourcelink.json
+/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/obj/Debug/net10.0/SecurityRestApi.MvcApplicationPartsAssemblyInfo.cs
+/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/bin/Debug/net10.0/Microsoft.OpenApi.dll
+/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.Swagger.dll
+/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll
+/Users/pawel/RiderProjects/SecurityRestApi/SecurityRestApi/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll

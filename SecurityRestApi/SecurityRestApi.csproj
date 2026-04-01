@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <PackageReference Include="Duende.IdentityServer" Version="*" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     </ItemGroup>
 
 </Project>
