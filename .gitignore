@@ -1,4 +1,5 @@
-/SecurityRestApi/bin/
-/SecurityRestApi/obj/
+**/bin/
+**/obj/
+**/.DS_Store
+.idea/
 /claude-501/
-/.idea/
