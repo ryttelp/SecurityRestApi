@@ -1,0 +1,482 @@
+openapi: 3.0.3
+info:
+  title: SecurityRestApi
+  version: v1
+  description: >
+    IdentityServer4-based identity provider with Keycloak user federation integration.
+    Supports ROPC, Client Credentials, Authorization Code PKCE, and Token Exchange grant types.
+
+servers:
+  - url: https://localhost:5236
+    description: Development server (HTTPS)
+  - url: http://localhost:5000
+    description: Development server (HTTP)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SECURITY SCHEMES
+# ──────────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    # IdentityServer Token endpoint — ROPC flow
+    oauth2-ropc:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: /connect/token
+          scopes:
+            api: "SecurityRestApi"
+            kg.internal: "InternalKgApi — dostęp wewnętrzny"
+            openid: OpenID Connect
+            profile: Profile claims (name, family_name, given_name)
+            email: Email claim
+
+    # Client Credentials flow (service-to-service)
+    oauth2-client-credentials:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /connect/token
+          scopes:
+            kg.internal: "InternalKgApi — dostęp wewnętrzny"
+
+    # Authorization Code PKCE (browser/interactive clients)
+    oauth2-pkce:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /connect/authorize
+          tokenUrl: /connect/token
+          scopes:
+            api: "SecurityRestApi"
+            openid: OpenID Connect
+            profile: Profile claims
+            email: Email claim
+
+    # Bearer token — used to protect API endpoints below
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      description: User entity returned by lookup and search endpoints.
+      properties:
+        id:
+          type: string
+          example: "1"
+        username:
+          type: string
+          example: "jkowalski"
+        email:
+          type: string | null
+          nullable: true
+          example: "jan.kowalski@example.com"
+        firstName:
+          type: string | null
+          nullable: true
+          example: "Jan"
+        lastName:
+          type: string | null
+          nullable: true
+          example: "Kowalski"
+
+    UserSearchResult:
+      type: object
+      description: Paginated user search result from Keycloak federation.
+      properties:
+        count:
+          type: integer
+          format: int32
+          example: 1
+        total:
+          type: integer
+          format: int32
+          example: 3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code.
+        error_description:
+          type: string
+          description: Human-readable error message.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PATHS — IDENTITY SERVER (OAuth 2.0 / OIDC)
+# ──────────────────────────────────────────────────────────────────────────────
+paths:
+  # ─── Token endpoint (all grant types) ───────────────────────────────────────
+
+  /connect/token:
+    post:
+      summary: Request access token via OAuth 2.0 / OIDC
+      description: >
+        Supports multiple grant types depending on the configured client:
+        - **ROPC**: `ropc-client` (username + password)
+        - **Client Credentials**: `internalkg-client` (machine-to-machine)
+        - **Token Exchange**: `securedweb-exchange-client` (Keycloak token → kg.internal)
+        - **Authorization Code (PKCE)**: `interactive` (browser app, requires redirect)
+
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type]
+              properties:
+                grant_type:
+                  type: string
+                  enum: [password, client_credentials, urn:ietf:params:oauth:grant-type:token-exchange]
+                  example: password
+                username:
+                  type: string
+                  description: Required for ROPC grant.
+                  example: "jkowalski"
+                password:
+                  type: string
+                  format: password
+                  description: Required for ROPC grant.
+                  example: "haslo123"
+                client_id:
+                  type: string
+                  description: OAuth client identifier.
+                  example: "ropc-client"
+                client_secret:
+                  type: string
+                  description: Client secret (required for ROPC and Client Credentials).
+                  example: "secret"
+
+      responses:
+        200:
+          description: Access token issued successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    format: jwt
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  token_type:
+                    type: string
+                    example: "Bearer"
+                  scope:
+                    type: string
+                    example: "openid profile email api"
+
+        400:
+          description: Invalid request (missing parameters, unsupported grant type).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        401:
+          description: Authentication failed (invalid credentials or client secret).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    security: []  # Token endpoint is public — no bearer auth required
+
+  # ─── Authorize endpoint (Authorization Code flow) ──────────────────────────
+
+  /connect/authorize:
+    get:
+      summary: Start Authorization Code PKCE flow
+      description: >
+        Redirect user to IdentityServer login page for interactive clients.
+        Requires `interactive` client configured with PKCE.
+
+      parameters:
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "code"
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "interactive"
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: "http://localhost:5236/signin-oidc"
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "openid profile email api"
+        - name: code_challenge
+          in: query
+          required: true
+          schema:
+            type: string
+            description: PKCE code challenge (S256).
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "S256"
+
+      responses:
+        302:
+          description: Redirect to login page or consent screen.
+        400:
+          description: Invalid authorization request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    security: []
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PATHS — CUSTOM API ENDPOINTS
+# ──────────────────────────────────────────────────────────────────────────────
+
+  # ─── Authentication endpoints ───────────────────────────────────────────────
+
+  /auth/validate:
+    post:
+      summary: Validate user credentials
+      description: >
+        Simple credential validation endpoint. Returns 200 OK for valid
+        credentials or 401 Unauthorized otherwise. Does not issue tokens —
+        use `/connect/token` with ROPC grant for token-based auth.
+
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: "jkowalski"
+                password:
+                  type: string
+                  format: password
+                  example: "haslo123"
+
+      responses:
+        200:
+          description: Credentials are valid.
+        401:
+          description: Invalid credentials or missing parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Internal server error.
+
+      security: []
+
+  /auth/update-password:
+    post:
+      summary: Update user password
+      description: >
+        Updates the password for an existing user in the in-memory store.
+        Returns 204 No Content on success, 400 Bad Request if parameters
+        are missing, or 404 Not Found if the user does not exist.
+
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: "jkowalski"
+                password:
+                  type: string
+                  format: password
+                  description: New password to set.
+
+      responses:
+        204:
+          description: Password updated successfully.
+        400:
+          description: Missing username or password parameter.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Pole 'username' i 'password' są wymagane."
+        404:
+          description: User not found in the store.
+
+      security: []
+
+  # ─── User lookup endpoints (in-memory) ──────────────────────────────────────
+
+  /users/lookup:
+    get:
+      summary: Look up a user by identifier
+      description: >
+        Searches the in-memory user store for a single user matching
+        the provided id, username, or email. Returns one result.
+
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+            example: "1"
+        - name: username
+          in: query
+          schema:
+            type: string
+            example: "jkowalski"
+        - name: email
+          in: query
+          schema:
+            type: string
+            format: email
+            example: "jan.kowalski@example.com"
+
+      responses:
+        200:
+          description: User found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: User not found.
+
+      security: []
+
+  # ─── Keycloak federation endpoints ──────────────────────────────────────────
+
+  /users:
+    get:
+      summary: Search users via Keycloak federation
+      description: >
+        Queries the connected Keycloak server for users using two modes:
+        - **Full-text search**: when `search` parameter is provided
+        - **Attribute filter**: when `search` is empty, filters by username/email/firstName/lastName
+
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            description: Full-text search term.
+            example: "jan"
+        - name: username
+          in: query
+          schema:
+            type: string
+            description: Filter by username (used when search is empty).
+            example: "jkowalski"
+        - name: email
+          in: query
+          schema:
+            type: string
+            format: email
+            description: Filter by email (used when search is empty).
+            example: "jan.kowalski@example.com"
+        - name: firstName
+          in: query
+          schema:
+            type: string
+            description: Filter by first name (used when search is empty).
+            example: "Jan"
+        - name: lastName
+          in: query
+          schema:
+            type: string
+            description: Filter by last name (used when search is empty).
+            example: "Kowalski"
+        - name: first
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+            description: First result index for pagination.
+        - name: max
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 20
+            description: Maximum number of results to return.
+
+      responses:
+        200:
+          description: User search results from Keycloak.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+      security: []
+
+  /users/count:
+    get:
+      summary: Count users via Keycloak federation
+      description: >
+        Returns the total number of users matching a full-text search
+        query from the connected Keycloak server.
+
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            description: Full-text search term.
+            example: "kowalski"
+
+      responses:
+        200:
+          description: User count returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: integer
+                    format: int32
+                    example: 1
+
+      security: []
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SECURITY REQUIREMENTS (global — apply bearerAuth to protected endpoints)
+# ──────────────────────────────────────────────────────────────────────────────
+security:
+  - bearerAuth: [kg.internal]
