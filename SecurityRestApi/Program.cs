@@ -1,8 +1,32 @@
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using SecurityRestApi;
 using SecurityRestApi.IdentityServer;
 using SecurityRestApi.Keycloak;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Named HttpClient for fetching Keycloak JWKS — SSL bypass in dev due to self-signed cert
+builder.Services.AddHttpClient("KeycloakBackchannel")
+    .ConfigurePrimaryHttpMessageHandler(() =>
+        builder.Environment.IsDevelopment()
+            ? new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            }
+            : new HttpClientHandler());
+
+// Singleton so JWKS is fetched once and cached (ConfigurationManager has built-in refresh)
+builder.Services.AddSingleton(sp =>
+{
+    var http      = sp.GetRequiredService<IHttpClientFactory>().CreateClient("KeycloakBackchannel");
+    var authority = sp.GetRequiredService<IConfiguration>()["Keycloak:Authority"]!;
+    return new ConfigurationManager<OpenIdConnectConfiguration>(
+        $"{authority}/.well-known/openid-configuration",
+        new OpenIdConnectConfigurationRetriever(),
+        new HttpDocumentRetriever(http) { RequireHttps = false });
+});
 
 builder.Services.AddHttpLogging(o =>
 {
@@ -20,9 +44,11 @@ builder.Services.AddIdentityServer()
     .AddDeveloperSigningCredential()                          // tylko development; w produkcji zastąp certyfikatem
     .AddInMemoryIdentityResources(Config.IdentityResources)
     .AddInMemoryApiScopes(Config.ApiScopes)
+    .AddInMemoryApiResources(Config.ApiResources)
     .AddInMemoryClients(Config.Clients)
     .AddResourceOwnerValidator<CustomResourceOwnerPasswordValidator>()
-    .AddProfileService<CustomProfileService>();
+    .AddProfileService<CustomProfileService>()
+    .AddExtensionGrantValidator<KeycloakTokenExchangeGrantValidator>();
 
 var app = builder.Build();
 
