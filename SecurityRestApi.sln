@@ -2,6 +2,14 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecurityRestApi", "SecurityRestApi\SecurityRestApi.csproj", "{3D20DF3A-F1DA-4B65-AD84-72A4F0DAC730}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{7D6E46A0-1D3C-4950-B6E1-9AFF573B760D}"
+	ProjectSection(SolutionItems) = preProject
+		docs\InternalKgApi-specification.md = docs\InternalKgApi-specification.md
+		docs\Description.md = docs\Description.md
+		docs\SecurityRestApi.http = docs\SecurityRestApi.http
+		docs\SecurityRestApi.ApiSpec.yaml = docs\SecurityRestApi.ApiSpec.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

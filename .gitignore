@@ -3,3 +3,5 @@
 **/.DS_Store
 .idea/
 /claude-501/
+*DotSettings..user
+opencode.jsonc
