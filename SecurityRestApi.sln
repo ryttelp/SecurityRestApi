@@ -8,6 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{7D6E46A0-1
 		docs\Description.md = docs\Description.md
 		docs\SecurityRestApi.http = docs\SecurityRestApi.http
 		docs\SecurityRestApi.ApiSpec.yaml = docs\SecurityRestApi.ApiSpec.yaml
+		docs\docker-compose.yaml = docs\docker-compose.yaml
 	EndProjectSection
 EndProject
 Global
